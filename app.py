@@ -1,37 +1,25 @@
-from flask import Flask, request, send_file
-import tempfile
-import os
+pip install pikepdf
 import pikepdf
 
-app = Flask(__name__)
+# Nombre del archivo PDF original y de salida
+input_pdf = "plantillaorigen.pdf"
+output_pdf = "plantillaencriptada.pdf"
 
-@app.route("/encrypt", methods=["POST"])
-def encrypt_pdf():
-    password = request.form.get("password")
-    file = request.files.get("file")
+# Contraseña de cifrado (la misma servirá para abrirlo después)
+password = "12345"
 
-    if not file or not password:
-        return {"error": "Falta archivo o contraseña"}, 400
-
-    # Guardar archivo temporalmente
-    input_path = tempfile.mktemp(suffix=".pdf")
-    output_path = tempfile.mktemp(suffix="_encrypted.pdf")
-    file.save(input_path)
-
-    # Cifrar PDF con pikepdf
-    pdf = pikepdf.open(input_path)
+# Abrimos el PDF
+with pikepdf.open(input_pdf) as pdf:
+    # Guardamos con encriptación AES-256
     pdf.save(
-        output_path,
+        output_pdf,
         encryption=pikepdf.Encryption(
             owner=password,
             user=password,
-            R=6  # AES-256
+            R=6,   # AES-256
+            allow=pikepdf.Permissions(extract=False, print_lowres=False)
         )
     )
-    pdf.close()
 
-    # Enviar archivo cifrado al cliente
-    return send_file(output_path, as_attachment=True, download_name="documento_cifrado.pdf")
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+print(f"PDF encriptado con AES-256 guardado en {output_pdf}")
+print(f"Contraseña de desencriptación: {password}")
